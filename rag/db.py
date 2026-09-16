@@ -208,7 +208,7 @@ def stats(conn: psycopg.Connection) -> list[dict]:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT d.filename, d.n_pages, COUNT(c.id) AS n_chunks, d.created_at
+            SELECT d.id, d.filename, d.n_pages, COUNT(c.id) AS n_chunks, d.created_at
             FROM documents d
             LEFT JOIN chunks c ON c.document_id = d.id
             GROUP BY d.id
@@ -216,3 +216,41 @@ def stats(conn: psycopg.Connection) -> list[dict]:
             """
         )
         return cur.fetchall()
+
+
+def server_info(conn: psycopg.Connection) -> dict:
+    """Версии Postgres и pgvector — для вкладки диагностики."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT version() AS v")
+        pg = cur.fetchone()["v"].split(" on ")[0]
+        cur.execute("SELECT extversion AS v FROM pg_extension WHERE extname = 'vector'")
+        row = cur.fetchone()
+    return {"postgres": pg, "pgvector": row["v"] if row else None}
+
+
+def column_dim(conn: psycopg.Connection) -> int | None:
+    """Размерность, реально зашитая в колонку embedding."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT to_regclass('chunks') AS t")
+        if cur.fetchone()["t"] is None:
+            return None
+        cur.execute(
+            """
+            SELECT atttypmod AS dim
+            FROM pg_attribute
+            WHERE attrelid = 'chunks'::regclass AND attname = 'embedding'
+            """
+        )
+        row = cur.fetchone()
+    return row["dim"] if row else None
+
+
+def has_hnsw_index(conn: psycopg.Connection) -> bool:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT COUNT(*) AS n FROM pg_indexes
+            WHERE tablename = 'chunks' AND indexdef ILIKE '%hnsw%'
+            """
+        )
+        return cur.fetchone()["n"] > 0

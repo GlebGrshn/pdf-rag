@@ -97,6 +97,13 @@ def cmd_search(args: argparse.Namespace) -> None:
 
 
 def cmd_ask(args: argparse.Namespace) -> None:
+    if not answer_mod.credentials_available():
+        print("Ключ Anthropic не найден — команда ask без него не работает.", file=sys.stderr)
+        print("  Впишите ANTHROPIC_API_KEY в файл .env (он в .gitignore),", file=sys.stderr)
+        print("  либо выполните `ant auth login`.", file=sys.stderr)
+        print("  Поиск работает и без ключа: python -m rag search \"ваш запрос\"", file=sys.stderr)
+        raise SystemExit(1)
+
     conn = _connect_or_exit()
     db.init_schema(conn)
 

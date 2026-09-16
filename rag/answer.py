@@ -14,6 +14,7 @@ API по реальному тексту документа, её нельзя �
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from typing import Callable, Sequence
 
@@ -53,6 +54,32 @@ class Answer:
     def used_hits(self) -> list[int]:
         """Индексы чанков, на которые модель реально сослалась."""
         return sorted({c.hit_index for c in self.citations})
+
+
+def credentials_available() -> bool:
+    """Есть ли чем ходить в Anthropic: ключ в окружении или профиль `ant`.
+
+    Ключ нужен только для генерации ответа — индексация и поиск работают
+    полностью локально, поэтому интерфейс должен уметь жить без него.
+
+    Тонкость: строка `ANTHROPIC_API_KEY=` в .env даёт не отсутствие
+    переменной, а ПУСТУЮ строку. Конструктор Anthropic() такую проглатывает
+    молча, и наивная проверка «сконструировался — значит ключ есть» врёт.
+    Поэтому проверяем непустоту явно.
+    """
+    for name in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"):
+        if (os.environ.get(name) or "").strip():
+            return True
+
+    # В окружении пусто — возможно, настроен профиль `ant auth login`.
+    try:
+        client = anthropic.Anthropic()
+    except Exception:  # noqa: BLE001 — любая проблема означает «нельзя спрашивать»
+        return False
+    return bool(
+        (getattr(client, "api_key", None) or "").strip()
+        or (getattr(client, "auth_token", None) or "").strip()
+    )
 
 
 def _build_content(question: str, hits: Sequence[SearchHit]) -> list[dict]:
