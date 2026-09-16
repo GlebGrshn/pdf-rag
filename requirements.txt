@@ -1,0 +1,7 @@
+anthropic>=0.75
+fastembed>=0.7
+pgvector>=0.4
+psycopg[binary]>=3.2
+pypdf>=5.1
+python-dotenv>=1.0
+streamlit>=1.40
