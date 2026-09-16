@@ -48,8 +48,8 @@ def load_settings() -> Settings:
         ),
         embedding_dim=int(os.getenv("EMBEDDING_DIM", "384")),
         embedding_cache_dir=PROJECT_ROOT / "local_cache",
-        chunk_target_chars=int(os.getenv("CHUNK_TARGET_CHARS", "1000")),
-        chunk_overlap_chars=int(os.getenv("CHUNK_OVERLAP_CHARS", "150")),
+        chunk_target_chars=int(os.getenv("CHUNK_TARGET_CHARS", "600")),
+        chunk_overlap_chars=int(os.getenv("CHUNK_OVERLAP_CHARS", "120")),
     )
 
 
